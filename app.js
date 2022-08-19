@@ -3,12 +3,13 @@ const express = require("express");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const Blog = require("./models/blog");
+const { render } = require("ejs");
 
 // express app
 const app = express();
 
 // connect to mongo db atlas
-const dbURI = "mongodb+srv://netninja:lois020325@cluster0.rbtuuad.mongodb.net/nodeNinja?retryWrites=true&w=majority";
+const dbURI = "mongodb+srv://netninja:node123456@cluster0.rbtuuad.mongodb.net/nodeNinja?retryWrites=true&w=majority";
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true }) // object pour éviter les messages de dépreciation
     // listen for requests
     .then((result) => app.listen(3000))
@@ -19,45 +20,10 @@ app.set("view engine", "ejs");
 
 //middleware & static files
 app.use(express.static("public")); // dossier à mettre à disposition du browser (le dossier "public" en l'occurence)
+//sert à accepter la data du formulaire
+app.use(express.urlencoded({ extended: true }));
 //remplace le middleware d'en dessous pour avoir les infos de la requete (on l'appelle 3rd party middleware)
 app.use(morgan("dev"));
-
-// mongoose and mongo sandbox routes
-/* app.get("/add-blog", (req, res) => {
-    const blog = new Blog({
-        title: "new blog 2",
-        snippet: "about my new blog 2",
-        body: "again blog 2"
-    });
-
-    blog.save()
-        .then((result) => {
-            res.send(result)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-});
-
-app.get("/all-blog", (req, res) => {
-    Blog.find()
-        .then((result) => {
-            res.send(result);
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-});
-
-app.get("/single-blog", (req, res) => {
-    Blog.findById("62fe61d98f89a94a92a7a3c4")
-        .then((result) => {
-            res.send(result)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}); */
 
 // Routes
 
@@ -81,11 +47,48 @@ app.get("/blogs", (req, res) => {
         .catch((err) => {
             console.log(err);
         });
-})
+});
+
+// Poster un blog à partir du form
+app.post("/blogs", (req, res) => {
+    //console.log(req.body);
+    const blog = new Blog(req.body);
+
+    blog.save()
+        .then((result) => {
+            res.redirect("/blogs");
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+});
 
 app.get("/blogs/create", (req, res) => {
     res.render("create", { title: "Create a new blog" });
 });
+
+// blog par id
+app.get("/blogs/:id", (req, res) => {
+    const id = req.params.id;
+    Blog.findById(id)
+        .then((result) => {
+            res.render("details", { blog: result, title: "Blog Details" })
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+})
+
+app.delete("/blogs/:id", (req, res) => {
+    const id = req.params.id;
+
+    Blog.findByIdAndDelete(id)
+        .then(result => {
+            res.json({ redirect: "/blogs" })
+        })
+        .catch(err => console.log(err));
+})
+
 
 // redirects
 app.get("/about-us", (req, res) => {
